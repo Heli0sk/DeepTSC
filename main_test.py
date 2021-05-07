@@ -60,7 +60,8 @@ def train_epoch(training_input, training_target, nodes, batch_size, means, stds)
         indices = permutation[i:i + batch_size]
         X_batch, y_batch = training_input[indices], training_target[indices]
         if torch.cuda.is_available():
-            X_batch = X_batch.cuda()
+            # X_batch = X_batch.cuda()
+            X_batch = X_batch.to('cuda:0')
             y_batch = y_batch.cuda()
 
             stds = torch.tensor(stds).cuda()
