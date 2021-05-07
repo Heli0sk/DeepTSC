@@ -26,7 +26,7 @@ from logs.logger import Logger
 num_timesteps_input = 12
 num_timesteps_output = 3
 
-epochs = 1000
+epochs = 100
 batch_size = 16
 N = 249
 
@@ -106,7 +106,8 @@ if __name__ == '__main__':
     A_wave = get_normalized_adj(A)
     A_wave = torch.from_numpy(A_wave)
     if torch.cuda.is_available():
-        A_wave = A_wave.cuda()
+        # A_wave = A_wave.cuda()
+        A_wave = A_wave.to('cuda:0')
         # nodes = torch.Tensor(nodes).type(torch.LongTensor).cuda()
         print("=" * 50)
         nodes = torch.LongTensor(nodes).cuda()
@@ -143,10 +144,11 @@ if __name__ == '__main__':
             net.eval()
             if torch.cuda.is_available():
                 val_input = val_input.cuda()
+                val_input = val_input.to('cuda:0')
                 val_target = val_target.cuda()
             out = net(A_wave, val_input, 'eval')
 
-            eval_loss = F.nll_loss(out, nodes, size_average=False).to(device="cpu")
+            eval_loss = F.nll_loss(out, nodes.to(out.device), size_average=False).to(device="cpu")
             pred = out.data.max(1, keepdim=True)[1]
             pred = torch.squeeze(pred)
             for i in range(len(pred)):
