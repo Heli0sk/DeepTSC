@@ -9,8 +9,6 @@ import torch.nn.functional as F
 
 # from stgcn import STGCN
 from stgcn_test import STGCN
-# from stgcn_test import STGCN
-
 # from gcn import STGCN
 # from TGCN import STGCN
 # from GRU import STGCN
@@ -26,7 +24,7 @@ from logs.logger import Logger
 num_timesteps_input = 12
 num_timesteps_output = 3
 
-epochs = 100
+epochs = 1000
 batch_size = 16
 N = 249
 
@@ -60,8 +58,7 @@ def train_epoch(training_input, training_target, nodes, batch_size, means, stds)
         indices = permutation[i:i + batch_size]
         X_batch, y_batch = training_input[indices], training_target[indices]
         if torch.cuda.is_available():
-            # X_batch = X_batch.cuda()
-            X_batch = X_batch.to('cuda:0')
+            X_batch = X_batch.cuda()
             y_batch = y_batch.cuda()
 
             stds = torch.tensor(stds).cuda()
@@ -107,8 +104,7 @@ if __name__ == '__main__':
     A_wave = get_normalized_adj(A)
     A_wave = torch.from_numpy(A_wave)
     if torch.cuda.is_available():
-        # A_wave = A_wave.cuda()
-        A_wave = A_wave.to('cuda:0')
+        A_wave = A_wave.cuda()
         # nodes = torch.Tensor(nodes).type(torch.LongTensor).cuda()
         print("=" * 50)
         nodes = torch.LongTensor(nodes).cuda()
@@ -145,11 +141,10 @@ if __name__ == '__main__':
             net.eval()
             if torch.cuda.is_available():
                 val_input = val_input.cuda()
-                val_input = val_input.to('cuda:0')
                 val_target = val_target.cuda()
             out = net(A_wave, val_input, 'eval')
 
-            eval_loss = F.nll_loss(out, nodes.to(out.device), size_average=False).to(device="cpu")
+            eval_loss = F.nll_loss(out, nodes, size_average=False).to(device="cpu")
             pred = out.data.max(1, keepdim=True)[1]
             pred = torch.squeeze(pred)
             for i in range(len(pred)):
