@@ -137,6 +137,7 @@ class STGCN(nn.Module):
         num_features=in_channels).
         :param A_hat: Normalized adjacency matrix.
         """
+
         out1 = self.block1(X.to('cuda:0'), A_hat.to('cuda:0'))
         out2 = self.block2(out1.to('cuda:1'), A_hat.to('cuda:1'))
         out3 = self.last_temporal(out2.to('cuda:2'))
