@@ -168,7 +168,6 @@ if __name__ == '__main__':
                 'Max Evalution: Accuracy: {:.4f}, Precise: {:.4f}, ReCall: {:.4f}, F1 Score: {:.4f}'.format(
                     max_accuracy, max_precise, max_recall, max_f1_score))
 
-
             out = None
             val_input = val_input.to(device="cpu")
             val_target = val_target.to(device="cpu")
