@@ -140,7 +140,7 @@ if __name__ == '__main__':
                 val_target = val_target.cuda()
             out = net(A_wave, val_input, 'eval')
 
-            eval_loss = F.nll_loss(out, nodes, size_average=False).to(device="cpu")
+            eval_loss = F.nll_loss(out, nodes.to(out.device), size_average=False).to(device="cpu")
             pred = out.data.max(1, keepdim=True)[1]
             pred = torch.squeeze(pred)
             for i in range(len(pred)):
