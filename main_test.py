@@ -2,9 +2,11 @@ import argparse
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import os
 
 # from stgcn import STGCN
 from stgcn_test import STGCN
+# from stgcn_origin import STGCN
 # from gcn import STGCN
 # from TGCN import STGCN
 # from GRU import STGCN
@@ -16,7 +18,7 @@ from utils import get_normalized_adj, CalConfusionMatrix
 from data_load import Data_load
 from logs.logger import Logger
 
-
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 num_timesteps_input = 12
 num_timesteps_output = 3
 
@@ -33,7 +35,6 @@ logger = Logger(args.log_file)
 
 
 def train_epoch(training_input, training_target, nodes, batch_size, means, stds):
-# def train_epoch(training_input, training_target, batch_size, max_value):
     """
     Trains one epoch with the given data.
     :param training_input: Training inputs of shape (num_samples, num_nodes,
@@ -68,12 +69,17 @@ def train_epoch(training_input, training_target, nodes, batch_size, means, stds)
         # out = out * max_value
         # y_batch = y_batch * max_value
 
-        # nodes = torch.LongTensor(nodes)
-        loss = F.nll_loss(out, nodes)
-        loss.backward()
+        nodes = torch.LongTensor(nodes)
+        loss0 = F.nll_loss(out[0], nodes)
+        loss1 = F.nll_loss(out[1], nodes)
+        # print("=" * 50)
+        # print(loss0, loss1)
+        # print(type(loss0), type(loss1))
+        loss = torch.nn.L1Loss(loss0, loss1)
+        loss1.backward()
         optimizer.step()
 
-        epoch_training_losses.append(loss.detach().cpu().numpy())
+        epoch_training_losses.append(loss0.detach().cpu().numpy())
         loss_mean = sum(epoch_training_losses)/len(epoch_training_losses)
         # print('loss: ' + str(loss_mean))
     return loss_mean
@@ -140,8 +146,8 @@ if __name__ == '__main__':
                 val_target = val_target.cuda()
             out = net(A_wave, val_input, 'eval')
 
-            eval_loss = F.nll_loss(out, nodes.to(out.device), size_average=False).to(device="cpu")
-            pred = out.data.max(1, keepdim=True)[1]
+            eval_loss = F.nll_loss(out[0], nodes, size_average=False).to(device="cpu")
+            pred = out[0].data.max(1, keepdim=True)[1]
             pred = torch.squeeze(pred)
             for i in range(len(pred)):
                 confusion_matrix[nodes[i]][pred[i]] += 1

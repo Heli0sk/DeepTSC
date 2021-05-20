@@ -129,7 +129,8 @@ class STGCN(nn.Module):
 
         # self.fully = nn.Linear((num_timesteps_input - 2 * 5) * 64, num_timesteps_output)
         self.fully_train = nn.Linear(2048, 3)
-        self.fully_eval = nn.Linear(211968, 3)
+        # self.fully_eval = nn.Linear(211968, 3)
+        self.fully_eval = nn.Linear(1152, 3)
 
     def forward(self, A_hat, X, status):
         """
