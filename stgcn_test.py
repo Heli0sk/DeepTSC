@@ -96,6 +96,23 @@ class STGCNBlock(nn.Module):
         # return t3
 
 
+# TODO: Implement Function
+class LCBlock(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super(LCBlock, self).__init__()
+        self.time_block = TimeBlock(in_channels=in_channels, out_channels=out_channels)
+        self.fully_train = nn.Linear(6144, 3)
+        self.fully_eval = nn.Linear(211968, 3)
+
+    def forward(self, X, status):
+        time_out = self.time_block(X)
+        if status == 'train':
+            out = self.fully_train(time_out.reshape((time_out.shape[1], -1)))
+        if status == 'eval':
+            out = self.fully_eval(time_out.reshape((time_out.shape[1], -1)))
+        return F.log_softmax(out, dim=1)
+
+
 class STGCN(nn.Module):
     """
     Spatio-temporal graph convolutional network as described in
@@ -116,20 +133,20 @@ class STGCN(nn.Module):
         """
         super(STGCN, self).__init__()
         self.block1 = STGCNBlock(in_channels=num_features, out_channels=64,
-                                 spatial_channels=16, num_nodes=num_nodes).to('cuda:0')
+                                 spatial_channels=16, num_nodes=num_nodes)
+
+        # TODO: 在两个时空卷积块之间加入局部批评网络
+        self.LC_block = LCBlock(in_channels=64, out_channels=64)
+
         self.block2 = STGCNBlock(in_channels=64, out_channels=64,
-                                 spatial_channels=16, num_nodes=num_nodes).to('cuda:1')
+                                 spatial_channels=16, num_nodes=num_nodes)
 
-        # self.block1 = STGCNBlock(in_channels=num_features, out_channels_1=16, out_channels_2=64,
-        #                          spatial_channels=16, num_nodes=num_nodes)
-        # self.block2 = STGCNBlock(in_channels=64, out_channels_1=16, out_channels_2=64,
-        #                          spatial_channels=16, num_nodes=num_nodes)
-
-        self.last_temporal = TimeBlock(in_channels=64, out_channels=64).to('cuda:2')
+        self.last_temporal = TimeBlock(in_channels=64, out_channels=64)
 
         # self.fully = nn.Linear((num_timesteps_input - 2 * 5) * 64, num_timesteps_output)
-        self.fully_train = nn.Linear(2048, 3).to('cuda:2')
-        self.fully_eval = nn.Linear(211968, 3).to('cuda:2')
+        self.fully_train = nn.Linear(2048, 3)
+        self.fully_eval = nn.Linear(211968, 3)
+
 
     def forward(self, A_hat, X, status):
         """
@@ -137,14 +154,16 @@ class STGCN(nn.Module):
         num_features=in_channels).
         :param A_hat: Normalized adjacency matrix.
         """
-        out1 = self.block1(X.to('cuda:0'), A_hat.to('cuda:0'))
-        out2 = self.block2(out1.to('cuda:1'), A_hat.to('cuda:1'))
-        out3 = self.last_temporal(out2.to('cuda:2'))
+        out1 = self.block1(X, A_hat)
+        lc_out = self.LC_block(out1, status)      # 传入局部网络
+
+        out2 = self.block2(out1, A_hat)
+        out3 = self.last_temporal(out2)
         if status == 'train':
             out3 = self.fully_train(out3.reshape((out3.shape[1], -1)))
         if status == 'eval':
             out3 = self.fully_eval(out3.reshape((out3.shape[1], -1)))
         # out4 = self.fully(out3[:, :, :, -1][:, :, -1])
-        return F.log_softmax(out3, dim=1)
+        return F.log_softmax(out3, dim=1), lc_out
 
 
