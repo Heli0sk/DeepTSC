@@ -81,9 +81,16 @@ def train_epoch(training_input, training_target, nodes, batch_size, means, stds)
         # print(type(loss0), type(loss1))
         loss = F.l1_loss(loss0, loss1)
 
-        # 更新局部网络，已经在optimizer中设置了只更新LC_block，但也会计算其余部分的梯度
-        loss.backward(retain_graph=True)
-        optimizer_lc.step()
+        # 更新前半部分网络 ( block1 )
+        # 设置 requires_grad, 只更新block1的参数
+        for name, param in net.named_parameters():
+            if "block1" in name:
+                param.requires_grad = True
+            else:
+                param.requires_grad = False
+        loss1.backward(retain_graph=True)
+        optimizer1.step()
+
         # 更新后半部分网络 ( block2, last_temporal, fully_train)
         # 设置 requires_grad ,不更新block1的参数
         for name, param in net.named_parameters():
@@ -91,24 +98,13 @@ def train_epoch(training_input, training_target, nodes, batch_size, means, stds)
                 param.requires_grad = False
         loss0.backward(retain_graph=True)
         optimizer0.step()
-        # 更新前半部分网络 ( block1 )
-        # 设置 requires_grad, 只更新block1的参数
-        for name, param in net.named_parameters():
-            if "block1" in name:
-                param.requires_grad = True
-            if "block2" in name:
-                param.requires_grad = False
-            if "last_temporal" in name:
-                param.requires_grad = False
-            if "fully_train" in name:
-                param.requires_grad = False
-        loss1.backward()
-        optimizer1.step()
 
+        # 更新局部网络，已经在optimizer中设置了只更新LC_block，但也会计算其余部分的梯度
+        loss.backward()
+        optimizer_lc.step()
 
         epoch_training_losses.append(loss0.detach().cpu().numpy())
         loss_mean = sum(epoch_training_losses)/len(epoch_training_losses)
-        # print('loss: ' + str(loss_mean))
     return loss_mean
 
 
@@ -128,7 +124,6 @@ if __name__ == '__main__':
     if torch.cuda.is_available():
         A_wave = A_wave.cuda()
         # nodes = torch.Tensor(nodes).type(torch.LongTensor).cuda()
-        print("=" * 50)
         nodes = torch.LongTensor(nodes).cuda()
 
     net = STGCN(A_wave.shape[0],
@@ -139,7 +134,7 @@ if __name__ == '__main__':
         net.cuda()
 
     optimizer0 = torch.optim.Adam(net.parameters(), lr=1e-3)
-    optimizer1 = torch.optim.Adam(net.parameters(), lr=1e-3)
+    optimizer1 = torch.optim.Adam(net.block1.parameters(), lr=1e-3)     # 只更新block1
     optimizer_lc = torch.optim.Adam(net.LC_block.parameters(), lr=1e-4)  # 用于更新局部网络
 
     training_losses = []

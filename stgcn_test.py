@@ -102,7 +102,7 @@ class LCBlock(nn.Module):
         super(LCBlock, self).__init__()
         self.time_block = TimeBlock(in_channels=in_channels, out_channels=out_channels)
         self.fully_train = nn.Linear(6144, 3)
-        self.fully_eval = nn.Linear(211968, 3)
+        self.fully_eval = nn.Linear(635904, 3)
 
     def forward(self, X, status):
         time_out = self.time_block(X)
