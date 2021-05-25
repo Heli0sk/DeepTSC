@@ -96,10 +96,17 @@ def train_epoch(training_input, training_target, nodes, batch_size, means, stds)
         for name, param in net.named_parameters():
             if "block1" in name:
                 param.requires_grad = False
+            else:
+                param.requires_grad = True
         loss0.backward(retain_graph=True)
         optimizer0.step()
 
         # 更新局部网络，已经在optimizer中设置了只更新LC_block，但也会计算其余部分的梯度
+        for name, param in net.named_parameters():
+            if "LC_block" in name:
+                param.requires_grad = True
+            else:
+                param.requires_grad = False
         loss.backward()
         optimizer_lc.step()
 
@@ -133,7 +140,9 @@ if __name__ == '__main__':
     if torch.cuda.is_available():
         net.cuda()
 
-    optimizer0 = torch.optim.Adam(net.parameters(), lr=1e-3)
+    optimizer0 = torch.optim.Adam({'params': net.block2.parameters()},
+                                  {'params': net.last_temporal.parameters()},
+                                  {'params': net.fully_train.parameters()},lr=1e-3)
     optimizer1 = torch.optim.Adam(net.block1.parameters(), lr=1e-3)     # 只更新block1
     optimizer_lc = torch.optim.Adam(net.LC_block.parameters(), lr=1e-4)  # 用于更新局部网络
 
