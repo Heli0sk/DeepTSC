@@ -166,7 +166,6 @@ if __name__ == '__main__':
             param.requires_grad = False
     optimizer_lc = torch.optim.Adam(net.LC_block.parameters(), lr=1e-4)  # 用于更新局部网络
 
-    # optimizer0 = torch.optim.Adam(net.parameters(), lr=1e-3)
     # optimizer1 = torch.optim.Adam(net.block1.parameters(), lr=1e-3)     # 只更新block1
     # optimizer_lc = torch.optim.Adam(net.LC_block.parameters(), lr=1e-4)  # 用于更新局部网络
 
