@@ -73,23 +73,10 @@ def train_epoch(training_input, training_target, nodes, batch_size, means, stds)
         应该用loss更新局部网络，用loss1 更新前半部分网络，用loss0更新后半部分网络。
         '''
 
-        nodes = torch.LongTensor(nodes)
+        # nodes = torch.LongTensor(nodes)
         loss0 = F.nll_loss(out[0], nodes)
         loss1 = F.nll_loss(out[1], nodes)
-        # print("=" * 50)
-        # print(loss0, loss1)
-        # print(type(loss0), type(loss1))
         loss = F.l1_loss(loss0, loss1)
-
-        # 更新后半部分网络 ( block2, last_temporal, fully_train)
-        # 设置 requires_grad ,不更新block1的参数
-        for name, param in net.named_parameters():
-            if "block1" in name:
-                param.requires_grad = False
-            else:
-                param.requires_grad = True
-        loss0.backward(retain_graph=True)
-        optimizer0.step()
 
         # 更新前半部分网络 ( block1 )
         # 设置 requires_grad, 只更新block1的参数
@@ -100,6 +87,16 @@ def train_epoch(training_input, training_target, nodes, batch_size, means, stds)
                 param.requires_grad = False
         loss1.backward(retain_graph=True)
         optimizer1.step()
+
+        # 更新后半部分网络 ( block2, last_temporal, fully_train)
+        # 设置 requires_grad ,不更新block1的参数
+        for name, param in net.named_parameters():
+            if "block1" in name:
+                param.requires_grad = False
+            else:
+                param.requires_grad = True
+        loss0.backward(retain_graph=True)
+        optimizer0.step()
 
         # 更新局部网络，已经在optimizer中设置了只更新LC_block，但也会计算其余部分的梯度
         for name, param in net.named_parameters():
@@ -147,7 +144,7 @@ if __name__ == '__main__':
             param.requires_grad = False
         else:
             param.requires_grad = True
-    optimizer0 = torch.optim.Adam(net.parameters(), lr=1e-3)
+    optimizer0 = torch.optim.Adam(filter(lambda p: p.requires_grad, net.parameters()), lr=1e-3)
 
     # 更新前半部分网络 ( block1 )
     # 设置 requires_grad, 只更新block1的参数
@@ -156,7 +153,7 @@ if __name__ == '__main__':
             param.requires_grad = True
         else:
             param.requires_grad = False
-    optimizer1 = torch.optim.Adam(net.block1.parameters(), lr=1e-3)  # 只更新block1
+    optimizer1 = torch.optim.Adam(filter(lambda p: p.requires_grad, net.block1.parameters()), lr=1e-3)  # 只更新block1
 
     # 更新局部网络，已经在optimizer中设置了只更新LC_block，但也会计算其余部分的梯度
     for name, param in net.named_parameters():
@@ -164,7 +161,7 @@ if __name__ == '__main__':
             param.requires_grad = True
         else:
             param.requires_grad = False
-    optimizer_lc = torch.optim.Adam(net.LC_block.parameters(), lr=1e-4)  # 用于更新局部网络
+    optimizer_lc = torch.optim.Adam(filter(lambda p: p.requires_grad, net.LC_block.parameters()), lr=1e-4)  # 用于更新局部网络
 
     # optimizer1 = torch.optim.Adam(net.block1.parameters(), lr=1e-3)     # 只更新block1
     # optimizer_lc = torch.optim.Adam(net.LC_block.parameters(), lr=1e-4)  # 用于更新局部网络
