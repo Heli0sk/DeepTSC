@@ -18,7 +18,7 @@ from utils import get_normalized_adj, CalConfusionMatrix
 from data_load import Data_load
 from logs.logger import Logger
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 num_timesteps_input = 12
 num_timesteps_output = 3
 
