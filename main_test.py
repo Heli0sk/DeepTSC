@@ -86,7 +86,7 @@ def train_epoch(training_input, training_target, nodes, batch_size, means, stds)
             else:
                 param.requires_grad = False
         loss1.backward(retain_graph=True)
-        optimizer1.step()
+        # optimizer1.step()
 
         # 更新后半部分网络 ( block2, last_temporal, fully_train)
         # 设置 requires_grad ,不更新block1的参数
@@ -96,7 +96,7 @@ def train_epoch(training_input, training_target, nodes, batch_size, means, stds)
             else:
                 param.requires_grad = True
         loss0.backward(retain_graph=True)
-        optimizer0.step()
+        # optimizer0.step()
 
         # 更新局部网络，已经在optimizer中设置了只更新LC_block，但也会计算其余部分的梯度
         for name, param in net.named_parameters():
@@ -105,6 +105,10 @@ def train_epoch(training_input, training_target, nodes, batch_size, means, stds)
             else:
                 param.requires_grad = False
         loss.backward()
+        # optimizer_lc.step()
+
+        optimizer0.step()
+        optimizer1.step()
         optimizer_lc.step()
 
         epoch_training_losses.append(loss0.detach().cpu().numpy())
@@ -114,8 +118,6 @@ def train_epoch(training_input, training_target, nodes, batch_size, means, stds)
 
 if __name__ == '__main__':
     torch.manual_seed(7)
-
-    # A, max_value, training_input, training_target, val_input, val_target, test_input, test_target = Data_load(num_timesteps_input, num_timesteps_output)
 
     A, means, stds, training_input, training_target, val_input, val_target, test_input, test_target, nodes = Data_load(num_timesteps_input, num_timesteps_output)
 
