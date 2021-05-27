@@ -50,7 +50,7 @@ def train_epoch(training_input, training_target, nodes, batch_size, means, stds)
     loss_mean = 0.0
     for i in range(0, training_input.shape[0] - 64, batch_size):
         net.train()
-        # optimizer0.zero_grad()
+        optimizer0.zero_grad()
         optimizer1.zero_grad()
         optimizer_lc.zero_grad()
 
@@ -78,9 +78,9 @@ def train_epoch(training_input, training_target, nodes, batch_size, means, stds)
         loss1 = F.nll_loss(out[1], nodes)
         loss = F.l1_loss(loss0, loss1)
         loss0.requires_grad_(True)
-        
-        # 更新前半部分网络 ( block1 )
-        # 设置 requires_grad, 只更新block1的参数
+
+        # 更新后半部分网络 ( block2, last_temporal, fully_train)
+        # 设置 requires_grad ,不更新block1的参数
         for name, param in net.named_parameters():
             if "block1" in name:
                 param.requires_grad = False
@@ -89,8 +89,8 @@ def train_epoch(training_input, training_target, nodes, batch_size, means, stds)
         loss0.backward(retain_graph=True)
         # optimizer1.step()
 
-        # 更新后半部分网络 ( block2, last_temporal, fully_train)
-        # 设置 requires_grad ,不更新block1的参数
+        # 更新前半部分网络 ( block1 )
+        # 设置 requires_grad, 只更新block1的参数
         for name, param in net.named_parameters():
             if "block1" in name:
                 param.requires_grad = True
