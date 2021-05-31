@@ -125,10 +125,10 @@ class STGCN1(nn.Module):
         """
         super(STGCN1, self).__init__()
         self.block1 = STGCNBlock(in_channels=num_features, out_channels=64,
-                                 spatial_channels=16, num_nodes=num_nodes)
+                                 spatial_channels=16, num_nodes=num_nodes).to('cuda:0')
 
         # 在两个时空卷积块之间加入局部批评网络
-        self.LC_block = LCBlock(in_channels=64, out_channels=64)
+        self.LC_block = LCBlock(in_channels=64, out_channels=64).to('cuda:0')
 
     def forward(self, A_hat, X, status):
         """
@@ -137,8 +137,8 @@ class STGCN1(nn.Module):
         num_features=in_channels).
         :param A_hat: Normalized adjacency matrix.
         """
-        out1 = self.block1(X, A_hat)
-        lc_out = self.LC_block(out1, status)      # 传入局部网络
+        out1 = self.block1(X.to('cuda:0'), A_hat.to('cuda:0'))
+        lc_out = self.LC_block(out1, status.to('cuda:0'))      # 传入局部网络
 
         return out1, lc_out
 
@@ -156,12 +156,12 @@ class STGCN2(nn.Module):
         """
         super(STGCN2, self).__init__()
         self.block2 = STGCNBlock(in_channels=64, out_channels=64,
-                                 spatial_channels=16, num_nodes=num_nodes)
+                                 spatial_channels=16, num_nodes=num_nodes).to('cuda:1')
 
-        self.last_temporal = TimeBlock(in_channels=64, out_channels=64)
+        self.last_temporal = TimeBlock(in_channels=64, out_channels=64).to('cuda:1')
         # self.fully = nn.Linear((num_timesteps_input - 2 * 5) * 64, num_timesteps_output)
-        self.fully_train = nn.Linear(2048, 3)
-        self.fully_eval = nn.Linear(211968, 3)
+        self.fully_train = nn.Linear(2048, 3).to('cuda:1')
+        self.fully_eval = nn.Linear(211968, 3).to('cuda:1')
 
     def forward(self, A_hat, X, status):
         """
@@ -170,7 +170,7 @@ class STGCN2(nn.Module):
         num_features=in_channels).
         :param A_hat: Normalized adjacency matrix.
         """
-        out2 = self.block2(X, A_hat)
+        out2 = self.block2(X.to('cuda:1'), A_hat.to('cuda:1'))
         out3 = self.last_temporal(out2)
         if status == 'train':
             out3 = self.fully_train(out3.reshape((out3.shape[1], -1)))

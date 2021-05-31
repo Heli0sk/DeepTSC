@@ -63,26 +63,26 @@ def train_epoch(training_input, training_target, nodes, batch_size, means, stds)
         应该用loss更新局部网络，用loss1 更新前半部分网络，用loss0更新后半部分网络。
         '''
         # nodes = torch.LongTensor(nodes)
-        loss0 = F.nll_loss(out, nodes)
-        loss1 = F.nll_loss(out1[0], nodes)
-        loss = F.l1_loss(loss0, loss1)
+        loss0 = F.nll_loss(out, nodes.to('cuda:0'))
+        loss1 = F.nll_loss(out1[1], nodes.to('cuda:1'))
+        loss = F.l1_loss(loss0, loss1.to('cuda:0'))
         # loss0.requires_grad_(True)
-
-        # 更新前半部分网络 ( block1 )
-        loss1.backward(retain_graph=True)
-        optimizer1.step()
 
         # 更新后半部分网络 ( block2, last_temporal, fully_train)
         loss0.backward(retain_graph=True)
-        optimizer2.step()
+        # optimizer2.step()
+
+        # 更新前半部分网络 ( block1 )
+        loss1.backward(retain_graph=True)
+        # optimizer1.step()
 
         # 更新局部网络，已经在optimizer中设置了只更新LC_block，但也会计算其余部分的梯度
         loss.backward()
-        optimizer_lc.step()
-
-        # optimizer2.step()
-        # optimizer1.step()
         # optimizer_lc.step()
+
+        optimizer2.step()
+        optimizer1.step()
+        optimizer_lc.step()
 
         epoch_training_losses.append(loss0.detach().cpu().numpy())
         loss_mean = sum(epoch_training_losses) / len(epoch_training_losses)
