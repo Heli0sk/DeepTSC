@@ -47,15 +47,17 @@ def train_epoch(training_input, training_target, nodes, batch_size, means, stds)
 
         indices = permutation[i:i + batch_size]
         X_batch, y_batch = training_input[indices], training_target[indices]
-        if torch.cuda.is_available():
-            X_batch = X_batch.cuda()
-            y_batch = y_batch.cuda()
-            stds = torch.tensor(stds).cuda()
-            means = torch.tensor(means).cuda()
-            # max_value = torch.tensor(max_value).cuda()
+        # if torch.cuda.is_available():
+        #     X_batch = X_batch.cuda()
+        #     y_batch = y_batch.cuda()
+        #     stds = torch.tensor(stds).cuda()
+        #     means = torch.tensor(means).cuda()
 
-        out1 = net1(A_wave, X_batch, 'train')  # block1_out, lc_out
-        out = net2(A_wave, out1[0], 'train')
+        X_batch.to('cuda:0')
+        y_batch.to('cuda:0')
+
+        out1 = net1(A_wave.to('cuda:0'), X_batch, 'train')  # block1_out, lc_out
+        out = net2(A_wave.to('cuda:1'), out1[0].to('cuda:1'), 'train')
         '''
         loss0 是整个网络最终的输出与labels的损失
         loss1 是局部网络的输出与labels的损失
@@ -63,8 +65,8 @@ def train_epoch(training_input, training_target, nodes, batch_size, means, stds)
         应该用loss更新局部网络，用loss1 更新前半部分网络，用loss0更新后半部分网络。
         '''
         # nodes = torch.LongTensor(nodes)
-        loss0 = F.nll_loss(out, nodes.to('cuda:0'))
-        loss1 = F.nll_loss(out1[1], nodes.to('cuda:1'))
+        loss0 = F.nll_loss(out, nodes.to(out.device))
+        loss1 = F.nll_loss(out1[1], nodes.to(out1[1].device))
         loss = F.l1_loss(loss0, loss1.to('cuda:0'))
         # loss0.requires_grad_(True)
 
@@ -100,10 +102,11 @@ if __name__ == '__main__':
 
     A_wave = get_normalized_adj(A)
     A_wave = torch.from_numpy(A_wave)
-    if torch.cuda.is_available():
-        A_wave = A_wave.cuda()
-        # nodes = torch.Tensor(nodes).type(torch.LongTensor).cuda()
-        nodes = torch.LongTensor(nodes).cuda()
+    # if torch.cuda.is_available():
+    #     A_wave = A_wave.cuda()
+    #     # nodes = torch.Tensor(nodes).type(torch.LongTensor).cuda()
+    #     nodes = torch.LongTensor(nodes).cuda()
+    A_wave.to('cuda:0')
 
     net1 = STGCN1(A_wave.shape[0],
                  training_input.shape[3],

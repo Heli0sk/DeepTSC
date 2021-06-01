@@ -54,9 +54,9 @@ class TimeBlock2(nn.Module):
         :param kernel_size: Size of the 1D temporal kernel.
         """
         super(TimeBlock2, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels, out_channels, (1, kernel_size))
-        self.conv2 = nn.Conv2d(in_channels, out_channels, (1, kernel_size))
-        self.conv3 = nn.Conv2d(in_channels, out_channels, (1, kernel_size))
+        self.conv11 = nn.Conv2d(in_channels, out_channels, (1, kernel_size))
+        self.conv22 = nn.Conv2d(in_channels, out_channels, (1, kernel_size))
+        self.conv33 = nn.Conv2d(in_channels, out_channels, (1, kernel_size))
 
     def forward(self, X):
         """
@@ -67,8 +67,8 @@ class TimeBlock2(nn.Module):
         """
         # Convert into NCHW format for pytorch to perform convolutions.
         X = X.permute(0, 3, 1, 2)
-        temp = self.conv1(X) + torch.sigmoid(self.conv2(X))
-        out = F.relu(temp + self.conv3(X))
+        temp = self.conv11(X) + torch.sigmoid(self.conv22(X))
+        out = F.relu(temp + self.conv33(X))
         # Convert back from NCHW to NHWC
         out = out.permute(0, 2, 3, 1)
         return out
@@ -156,13 +156,6 @@ class STGCNBlock2(nn.Module):
                                                      spatial_channels))
         self.temporal2 = TimeBlock2(in_channels=spatial_channels,
                                    out_channels=out_channels)
-
-        # self.temporal1 = TimeBlock(in_channels=in_channels,
-        #                            out_channels=out_channels_1)
-        # self.Theta1 = nn.Parameter(torch.FloatTensor(out_channels_2,
-        #                                              spatial_channels))
-        # self.temporal2 = TimeBlock(in_channels=spatial_channels,
-        #                            out_channels=out_channels_2)
 
         self.batch_norm = nn.BatchNorm2d(num_nodes)
         self.reset_parameters()
