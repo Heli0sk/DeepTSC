@@ -9,6 +9,7 @@ from utils import get_normalized_adj, CalConfusionMatrix
 from data_load import Data_load
 from logs.logger import Logger
 
+os.environ['CUDA_VISIBLE_DEVICES'] = '1,2'
 num_timesteps_input = 12
 num_timesteps_output = 3
 
@@ -57,6 +58,9 @@ def train_epoch(training_input, training_target, nodes, batch_size, means, stds)
         y_batch.to('cuda:0')
 
         out1 = net1(A_wave.to('cuda:0'), X_batch, 'train')  # block1_out, lc_out
+        #print(next(net2.parameters()).device)
+        #print("=" * 66)
+        #input()
         out = net2(A_wave.to('cuda:1'), out1[0].to('cuda:1'), 'train')
         '''
         loss0 是整个网络最终的输出与labels的损失
@@ -67,7 +71,7 @@ def train_epoch(training_input, training_target, nodes, batch_size, means, stds)
         # nodes = torch.LongTensor(nodes)
         loss0 = F.nll_loss(out, nodes.to(out.device))
         loss1 = F.nll_loss(out1[1], nodes.to(out1[1].device))
-        loss = F.l1_loss(loss0, loss1.to('cuda:0'))
+        loss = F.l1_loss(loss0, loss1.to(loss0.device))
         # loss0.requires_grad_(True)
 
         # 更新后半部分网络 ( block2, last_temporal, fully_train)
@@ -107,6 +111,7 @@ if __name__ == '__main__':
     #     # nodes = torch.Tensor(nodes).type(torch.LongTensor).cuda()
     #     nodes = torch.LongTensor(nodes).cuda()
     A_wave.to('cuda:0')
+    nodes = torch.LongTensor(nodes).to('cuda:1')
 
     net1 = STGCN1(A_wave.shape[0],
                  training_input.shape[3],
@@ -117,9 +122,11 @@ if __name__ == '__main__':
                  num_timesteps_input,
                  num_timesteps_output)
 
-    if torch.cuda.is_available():
-        net1.cuda()
-        net2.cuda()
+    #if torch.cuda.is_available():
+    #    net1.cuda()
+    #    net2.cuda()
+    net1.to('cuda:0')
+    net2.to('cuda:1')
 
     optimizer2 = torch.optim.Adam(net2.parameters(), lr=1e-3)
     optimizer1 = torch.optim.Adam(net1.block1.parameters(), lr=1e-3)     # 只更新block1
@@ -149,6 +156,7 @@ if __name__ == '__main__':
                 val_target = val_target.cuda()
             out1 = net1(A_wave, val_input, 'eval')
             out = net2(A_wave, out1[0], 'eval')
+            #nodes = torch.LongTensor(nodes)
 
             eval_loss = F.nll_loss(out, nodes, size_average=False).to(device="cpu")
             pred = out.data.max(1, keepdim=True)[1]

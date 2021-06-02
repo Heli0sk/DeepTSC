@@ -67,6 +67,9 @@ class TimeBlock2(nn.Module):
         """
         # Convert into NCHW format for pytorch to perform convolutions.
         X = X.permute(0, 3, 1, 2)
+        #print(X.device)
+        #print("=" * 66)
+        #input()
         temp = self.conv11(X) + torch.sigmoid(self.conv22(X))
         out = F.relu(temp + self.conv33(X))
         # Convert back from NCHW to NHWC
